@@ -1,4 +1,4 @@
-# Especificación del Proyecto: Sistema de Facturación e Inventario (On-Premise)
+# Especificación del Proyecto: Sistema de Facturación e Inventario (Desktop App)
 
 > **Contexto del Negocio:** Tienda de regalos personalizados (Referencia: https://www.instagram.com/papeleria_creativard/). 
 
@@ -11,15 +11,16 @@
 ---
 
 ## 2. Visión General
-Aplicación web local (on-premise) para la gestión de facturación, control de inventario y reportes. Debe soportar configuración multinegocio (marca blanca local) permitiendo personalizar el logo, nombre y colores para instalarse en otros negocios a futuro. Por el momento, NO generará comprobantes fiscales digitales (e-CF), pero dejará la estructura lista para ello.
+Aplicación de escritorio nativa (Desktop App) para la gestión de facturación, control de inventario y reportes en una **única terminal (PC)**. Al basarse en Electron, se instala con un simple doble clic (sin contenedores ni configuraciones de red). Debe soportar configuración multinegocio (marca blanca local) permitiendo personalizar el logo, nombre y colores. Por el momento, NO generará comprobantes fiscales digitales (e-CF), pero dejará la estructura lista para ello.
 
 ## 3. Stack Tecnológico
-- **Frontend:** React, Vite, Tailwind CSS, Zustand (estado global), React Router.
-- **Backend:** Python, FastAPI, SQLAlchemy (ORM), Pydantic (Validación).
-- **Base de Datos:** PostgreSQL.
-- **Infraestructura:** Docker y Docker Compose (Despliegue unificado en Mac, Linux y Windows).
-- **Pruebas:** Pytest (Backend), Vitest / React Testing Library (Frontend).
-- **Calidad de Código:** Ruff (Python), ESLint + Prettier (React).
+- **Frontend (Renderer Process):** React, Vite, Tailwind CSS, Zustand (estado global), React Router.
+- **Backend (Main Process):** Node.js (nativo de Electron).
+- **Base de Datos:** SQLite (archivo local único).
+- **ORM:** Prisma o Drizzle ORM.
+- **Empaquetado y Distribución:** Electron Builder (genera `.exe`, `.dmg`, `.AppImage`).
+- **Comunicación:** Electron IPC (Inter-Process Communication) en lugar de peticiones HTTP/REST.
+- **Pruebas:** Vitest (lógica) y Playwright (E2E para la app empaquetada).
 
 ---
 
@@ -27,7 +28,7 @@ Aplicación web local (on-premise) para la gestión de facturación, control de 
 *Nota: Todas las entidades principales deben incluir un campo `is_active` o `deleted_at` para implementar Soft Deletes.*
 
 ### `StoreSettings` (Configuración de la Tienda)
-- `id` (UUID, PK)
+- `id` (UUID o CUID, PK)
 - `name` (String, ej. "Papelería Creativa RD")
 - `logo_url` (String/Base64)
 - `primary_color` (String, Hex)
@@ -35,45 +36,45 @@ Aplicación web local (on-premise) para la gestión de facturación, control de 
 - `receipt_footer_text` (String)
 
 ### `User` (Usuarios y Roles)
-- `id` (UUID, PK)
+- `id` (UUID o CUID, PK)
 - `username` (String, Unique)
 - `password_hash` (String)
-- `role` (Enum: ADMIN, CASHIER)
+- `role` (String Enum: ADMIN, CASHIER)
 - `is_active` (Boolean, default True)
 
 ### `Product` (Catálogo)
-- `id` (UUID, PK)
+- `id` (UUID o CUID, PK)
 - `sku` (String, Unique, Index)
 - `name` (String)
 - `description` (Text, Nullable)
-- `price` (Decimal)
-- `cost` (Decimal) /* Solo visible para ADMIN */
+- `price` (Decimal/Float)
+- `cost` (Decimal/Float) /* Solo visible para ADMIN */
 - `stock_quantity` (Integer, default 0)
 - `min_stock_alert` (Integer, default 5)
 - `is_active` (Boolean, default True)
 
 ### `Invoice` (Facturas)
-- `id` (UUID, PK)
+- `id` (UUID o CUID, PK)
 - `invoice_number` (String, Unique, Auto-incremental)
 - `date` (DateTime, default NOW)
-- `total_amount` (Decimal)
-- `payment_method` (Enum: CASH, CARD, TRANSFER)
+- `total_amount` (Decimal/Float)
+- `payment_method` (String Enum: CASH, CARD, TRANSFER)
 - `user_id` (UUID, FK -> User)
-- `status` (Enum: PAID, CANCELLED)
+- `status` (String Enum: PAID, CANCELLED)
 - `idempotency_key` (String, Unique, Nullable)
 
 ### `InvoiceItem` (Detalle de Factura)
-- `id` (UUID, PK)
+- `id` (UUID o CUID, PK)
 - `invoice_id` (UUID, FK -> Invoice)
 - `product_id` (UUID, FK -> Product)
 - `quantity` (Integer)
-- `unit_price` (Decimal)
-- `subtotal` (Decimal)
+- `unit_price` (Decimal/Float)
+- `subtotal` (Decimal/Float)
 
 ### `InventoryTransaction` (Auditoría de Inventario)
-- `id` (UUID, PK)
+- `id` (UUID o CUID, PK)
 - `product_id` (UUID, FK -> Product)
-- `type` (Enum: SALE, RETURN, MANUAL_IN, MANUAL_OUT)
+- `type` (String Enum: SALE, RETURN, MANUAL_IN, MANUAL_OUT)
 - `quantity` (Integer) /* Positivo o negativo */
 - `reference_id` (String, Nullable) /* Ej. ID de la factura */
 - `date` (DateTime, default NOW)
@@ -84,49 +85,37 @@ Aplicación web local (on-premise) para la gestión de facturación, control de 
 
 ## 5. Requisitos No Funcionales y Buenas Prácticas
 
-- **Arquitectura de Software (DRY & Clean Code):** Uso del patrón de repositorios (Repository Pattern) en el backend para separar la lógica de negocio de las consultas a la base de datos.
-- **Integridad de Datos (ACID):** Las operaciones de "Crear Factura" y "Descontar Inventario" deben ejecutarse en una única transacción de base de datos. Si una falla, se hace *rollback* de todo.
-- **Evolución del Esquema:** Uso de `Alembic` para gestionar migraciones de base de datos de manera segura sin pérdida de información en equipos locales.
+- **Comunicación IPC Segura:** El frontend (React) no tiene acceso directo a la base de datos ni a Node.js. Toda comunicación debe hacerse a través de `contextBridge` mediante canales IPC seguros predefinidos en `preload.js`.
+- **Integridad de Datos (ACID):** Las operaciones de "Crear Factura" y "Descontar Inventario" deben ejecutarse en una única transacción ($transaction en Prisma/Drizzle). Si una falla, se hace *rollback* de todo.
+- **Evolución del Esquema:** Uso del sistema de migraciones del ORM elegido para actualizar la base de datos local en las futuras actualizaciones de la aplicación sin borrar datos.
+- **Backups Triviales:** Implementar una función en el menú de la aplicación que permita al usuario "Exportar Copia de Seguridad", lo cual simplemente copiará el archivo `.db` de SQLite a una carpeta segura o USB.
 - **Soft Deletes (Borrado Lógico):** Prohibido el uso de `DELETE` físico en productos y usuarios para mantener intacta la reportería histórica.
-- **Resiliencia UI/UX:** Implementar llaves de idempotencia (`idempotency keys`) al cobrar para prevenir facturas duplicadas si el usuario hace doble clic o la red local falla.
-- **Seguridad:** 
-  - Autenticación por JWT. Contraseñas hasheadas con `bcrypt`.
-  - Rutas de frontend y endpoints de backend protegidos por roles (Admin vs Cajero).
-  - SQLAlchemy para mitigar inyecciones SQL. Validación estricta con Pydantic.
-- **Rendimiento:** Paginación estandarizada (`limit` y `offset`) en catálogos, inventarios y listados de facturas.
-- **Observabilidad On-Premise:** Middleware en FastAPI para captura centralizada de errores. Rotación de logs locales en un archivo físico (`app.log`) guardando solo los últimos 30 días para auditoría técnica.
+- **Resiliencia UI/UX:** Implementar llaves de idempotencia (`idempotency keys`) al cobrar para prevenir facturas duplicadas por clics múltiples.
+- **Integración de Hardware Nativas:** Al usar Electron, la impresión térmica y la lectura de códigos de barras (que actúan como teclados USB) deben procesarse de forma nativa sin depender de diálogos del navegador.
 
 ---
 
-## 6. Estrategia de Pruebas
-- **Unitarias Backend:** `Pytest` para cálculos de totales de facturas y lógica de deducción de stock.
-- **Integración Backend:** Base de datos en memoria (SQLite) para probar el flujo de endpoints completo.
-- **Frontend:** `Vitest` / `React Testing Library` para probar la lógica del carrito de compras (sumatorias, agregar/quitar ítems).
-
----
-
-## 7. Plan de Ejecución Incremental (Fases)
+## 6. Plan de Ejecución Incremental (Fases)
 
 ### Fase 1: Prototipo Interactivo (Frontend Mock) - *[FASE ACTUAL]*
-- Configurar el repositorio base (Vite + React + Tailwind + Zustand).
+- Configurar el repositorio base (Electron + React + Vite).
 - Desarrollar vistas principales: Punto de Venta (POS), Dashboard de Reportes, Gestión de Inventario y Configuración.
 - Integrar Zustand con datos estáticos (mock data) simulados.
-- **Objetivo:** Entregar un diseño navegable 100% funcional visualmente para aprobación del cliente. (SIN BACKEND AÚN).
+- **Objetivo:** Entregar un diseño navegable 100% funcional visualmente, empaquetado como aplicación de escritorio de prueba para la aprobación del cliente. (Sin base de datos real aún).
 
-### Fase 2: Infraestructura y Base de Datos
-- Configurar `docker-compose.yml` integrando PostgreSQL y el servicio backend (Python).
-- Programar modelos de SQLAlchemy y configurar Alembic para migraciones.
-- Implementar esquema de autenticación (JWT) y roles.
-- **Objetivo:** Contenedores funcionales y esquema de base de datos desplegado correctamente.
+### Fase 2: Configuración del Motor de Base de Datos
+- Integrar SQLite y configurar el ORM (Prisma o Drizzle) en el *Main Process* de Electron.
+- Crear las migraciones iniciales para construir el esquema de la base de datos.
+- Configurar el `preload.js` y el `contextBridge` para exponer canales IPC de consulta y mutación.
+- **Objetivo:** Backend local (Main Process) operativo y conectado a un archivo `app.db` persistente.
 
-### Fase 3: Integración, Lógica Transaccional y Testing
-- Reemplazar mock data del frontend con llamadas reales a la API vía `fetch` o `axios`.
-- Implementar la lógica ACID de facturación y movimientos de inventario en FastAPI.
-- Escribir pruebas unitarias y de integración.
-- **Objetivo:** Flujo completo de venta, actualización de inventario en tiempo real y reportes reales.
+### Fase 3: Integración y Lógica Transaccional
+- Reemplazar mock data del frontend (Zustand) con llamadas a través de IPC (ej. `window.api.getProducts()`).
+- Implementar la lógica ACID de facturación y movimientos de inventario en Node.js.
+- **Objetivo:** Flujo completo de venta, actualización de inventario en tiempo real y persistencia local garantizada.
 
-### Fase 4: Preparación On-Premise (Despliegue Local)
-- Implementar scripts/tareas programadas para respaldos (`.sql`) automáticos locales.
-- Configurar rotación de logs.
-- Integrar bibliotecas (`react-to-print` o `@react-pdf/renderer`) para la generación de facturas térmicas y PDF.
-- **Objetivo:** Sistema empaquetado, seguro, con backups automáticos y listo para instalarse en Windows, Mac o Linux.
+### Fase 4: Periféricos y Empaquetado Final
+- Implementar el módulo de impresión silenciosa (silent printing) en Electron para enviar tickets directamente a la impresora térmica POS.
+- Configurar el menú nativo de la ventana (Archivo -> Respaldar Base de Datos).
+- Configurar `electron-builder` para generar instaladores finales (`.exe` y `.dmg`).
+- **Objetivo:** Aplicación instalable, lista para producción y conectada al hardware del mostrador.
