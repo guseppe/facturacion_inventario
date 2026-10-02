@@ -5,7 +5,7 @@
 ---
 
 ## 1. Control de Ejecución (Directivas para el Agente AI)
-- **Fase Activa:** Fase 1
+- **Fase Activa:** Fase 2
 - **Regla de IA:** Lee todo este documento para comprender la arquitectura y el contexto del sistema. Sin embargo, **debes generar código y estructurar archivos EXCLUSIVAMENTE para los objetivos de la "Fase Activa"**. Las fases posteriores proporcionan contexto de diseño a futuro, pero no deben programarse aún.
 
 ---
@@ -51,6 +51,7 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - `cost` (Decimal/Float) /* Solo visible para ADMIN */
 - `stock_quantity` (Integer, default 0)
 - `min_stock_alert` (Integer, default 5)
+- `location` (String, Nullable) /* Ubicación o estante en el almacén */
 - `is_active` (Boolean, default True)
 
 ### `Invoice` (Facturas)
@@ -97,13 +98,13 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 
 ## 6. Plan de Ejecución Incremental (Fases)
 
-### Fase 1: Prototipo Interactivo (Frontend Mock) - *[FASE ACTUAL]*
+### Fase 1: Prototipo Interactivo (Frontend Mock)
 - Configurar el repositorio base (Electron + React + Vite).
 - Desarrollar vistas principales: Punto de Venta (POS), Dashboard de Reportes, Gestión de Inventario y Configuración.
 - Integrar Zustand con datos estáticos (mock data) simulados.
 - **Objetivo:** Entregar un diseño navegable 100% funcional visualmente, empaquetado como aplicación de escritorio de prueba para la aprobación del cliente. (Sin base de datos real aún).
 
-### Fase 2: Configuración del Motor de Base de Datos
+### Fase 2: Configuración del Motor de Base de Datos - *[FASE ACTUAL]*
 - Integrar SQLite y configurar el ORM (Prisma o Drizzle) en el *Main Process* de Electron.
 - Crear las migraciones iniciales para construir el esquema de la base de datos.
 - Configurar el `preload.js` y el `contextBridge` para exponer canales IPC de consulta y mutación.

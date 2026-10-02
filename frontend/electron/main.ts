@@ -50,4 +50,9 @@ app.on('activate', () => {
   }
 });
 
-app.whenReady().then(createWindow);
+import { registerIpcHandlers } from './ipc/handlers';
+
+app.whenReady().then(() => {
+  registerIpcHandlers();
+  createWindow();
+});

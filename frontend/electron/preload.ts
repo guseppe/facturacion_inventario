@@ -1,6 +1,17 @@
 import { ipcRenderer, contextBridge } from 'electron';
 
-// Expose safe APIs to the renderer process
+// Expose secure APIs to the renderer process
+contextBridge.exposeInMainWorld('api', {
+  // Products
+  getProducts: () => ipcRenderer.invoke('get-products'),
+  createProduct: (productData: any) => ipcRenderer.invoke('create-product', productData),
+  
+  // Settings
+  getStoreSettings: () => ipcRenderer.invoke('get-store-settings'),
+});
+
+// Optionally keep generic ipcRenderer if still needed by some other parts, 
+// though it's recommended to remove it eventually.
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args;
