@@ -7,6 +7,11 @@ export const storeSettings = sqliteTable('store_settings', {
   primaryColor: text('primary_color'),
   currency: text('currency').default('DOP'),
   receiptFooterText: text('receipt_footer_text'),
+  address: text('address'),
+  bankName: text('bank_name'),
+  bankAccount: text('bank_account'),
+  ownerName: text('owner_name'),
+  ownerId: text('owner_id'),
 });
 
 export const users = sqliteTable('users', {
@@ -39,6 +44,8 @@ export const invoices = sqliteTable('invoices', {
   userId: text('user_id').references(() => users.id).notNull(),
   status: text('status').notNull(), // PAID, CANCELLED
   idempotencyKey: text('idempotency_key').unique(),
+  clientName: text('client_name').default('Cliente Mostrador'),
+  clientAddress: text('client_address'),
 });
 
 export const invoiceItems = sqliteTable('invoice_items', {

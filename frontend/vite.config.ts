@@ -11,6 +11,13 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: [/node_modules/, 'better-sqlite3', 'drizzle-orm', 'drizzle-orm/better-sqlite3', 'electron']
+            }
+          }
+        }
       },
       preload: {
         input: 'electron/preload.ts',
@@ -18,4 +25,9 @@ export default defineConfig({
     }),
   ],
   base: './', // Use relative paths for electron
+  build: {
+    rollupOptions: {
+      external: ['better-sqlite3']
+    }
+  }
 });

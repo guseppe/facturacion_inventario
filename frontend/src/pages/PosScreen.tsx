@@ -1,12 +1,20 @@
 import { usePosStore } from '../store/posStore';
 import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Banknote } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PosScreen() {
-  const { products, cart, total, addToCart, removeFromCart, updateQuantity } = usePosStore();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { products, cart, total, addToCart, removeFromCart, updateQuantity, loadProducts } = usePosStore();
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'TRANSFER'>('CASH');
+  const [clientName, setClientName] = useState('');
+  const [clientAddress, setClientAddress] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -17,6 +25,39 @@ export default function PosScreen() {
     return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(amount);
   };
 
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    setIsProcessing(true);
+    
+    try {
+      const items = cart.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        unitPrice: item.price
+      }));
+
+      const response = await window.api.createInvoice({
+        items,
+        paymentMethod,
+        totalAmount: total,
+        clientName: clientName || 'Cliente Mostrador',
+        clientAddress: clientAddress || ''
+      });
+
+      if (response.success) {
+        // alert('Factura creada exitosamente');
+        loadProducts(); // Reload stock
+        navigate('/invoice', { state: { invoiceNumber: response.data?.invoiceNumber, clientName: clientName || 'Cliente Mostrador', clientAddress: clientAddress || '' } }); // Navigate with state
+      } else {
+        alert('Error al procesar el cobro: ' + response.error);
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="flex h-full bg-gray-50">
       {/* Product Catalog Area */}
@@ -24,7 +65,7 @@ export default function PosScreen() {
         <header className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Punto de Venta</h1>
-            <p className="text-gray-500 text-sm">Papelería Creativa RD</p>
+            <p className="text-gray-500 text-sm">Caja Activa</p>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -44,7 +85,8 @@ export default function PosScreen() {
               <button 
                 key={product.id}
                 onClick={() => addToCart(product)}
-                className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all text-left flex flex-col justify-between h-32 active:scale-[0.98]"
+                disabled={product.stockQuantity <= 0}
+                className={`bg-white p-4 rounded-xl shadow-sm border ${product.stockQuantity > 0 ? 'border-gray-100 hover:border-primary hover:shadow-md' : 'border-red-200 opacity-50'} transition-all text-left flex flex-col justify-between h-32 active:scale-[0.98]`}
               >
                 <div>
                   <span className="text-xs font-semibold text-gray-400 mb-1 block">{product.sku}</span>
@@ -52,8 +94,8 @@ export default function PosScreen() {
                 </div>
                 <div className="flex justify-between items-end mt-2">
                   <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md">
-                    Stock: {product.stock_quantity}
+                  <span className={`text-xs px-2 py-1 rounded-md ${product.stockQuantity <= product.minStockAlert ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                    Stock: {product.stockQuantity}
                   </span>
                 </div>
               </button>
@@ -101,7 +143,8 @@ export default function PosScreen() {
                     <span className="text-sm w-4 text-center font-medium">{item.quantity}</span>
                     <button 
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="p-1 text-gray-500 hover:bg-gray-100"
+                      disabled={item.quantity >= item.stockQuantity}
+                      className="p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
                     >
                       <Plus size={14} />
                     </button>
@@ -114,6 +157,27 @@ export default function PosScreen() {
 
         {/* Cart Total & Actions */}
         <div className="p-5 bg-white border-t border-gray-100">
+          <div className="mb-6 space-y-3">
+            <div>
+              <input 
+                type="text" 
+                placeholder="Nombre del Cliente (Opcional)" 
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none"
+              />
+            </div>
+            <div>
+              <input 
+                type="text" 
+                placeholder="Dirección del Cliente (Opcional)" 
+                value={clientAddress}
+                onChange={(e) => setClientAddress(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none"
+              />
+            </div>
+          </div>
+
           <div className="flex justify-between items-center mb-4">
             <span className="text-gray-500">Subtotal</span>
             <span className="font-medium text-gray-800">{formatCurrency(total)}</span>
@@ -126,25 +190,27 @@ export default function PosScreen() {
           <div className="grid grid-cols-2 gap-3 mb-3">
             <button 
               disabled={cart.length === 0}
-              className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setPaymentMethod('CASH')}
+              className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${paymentMethod === 'CASH' ? 'bg-primary/10 text-primary border-primary border' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
               <Banknote size={20} />
               Efectivo
             </button>
             <button 
               disabled={cart.length === 0}
-              className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setPaymentMethod('TRANSFER')}
+              className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${paymentMethod === 'TRANSFER' ? 'bg-primary/10 text-primary border-primary border' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             >
               <CreditCard size={20} />
               Transferencia
             </button>
           </div>
           <button 
-            disabled={cart.length === 0}
-            onClick={() => navigate('/invoice')}
-            className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+            disabled={cart.length === 0 || isProcessing}
+            onClick={handleCheckout}
+            className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
-            Cobrar Orden
+            {isProcessing ? 'Procesando...' : 'Cobrar Orden'}
           </button>
         </div>
       </div>

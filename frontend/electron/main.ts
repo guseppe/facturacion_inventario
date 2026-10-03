@@ -1,8 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import path from 'path';
 
 process.env.APP_ROOT = path.join(__dirname, '..');
 
@@ -21,7 +18,7 @@ function createWindow() {
     height: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -29,6 +26,18 @@ function createWindow() {
 
   // Hide the menu bar
   win.setMenuBarVisibility(false);
+
+  // Prevent opening new windows (e.g., from middle-clicking links or target="_blank")
+  win.webContents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
+  });
+
+  // Prevent navigation to external URLs or drops
+  win.webContents.on('will-navigate', (event, url) => {
+    // allow hot-reload in dev
+    if (VITE_DEV_SERVER_URL && url.startsWith(VITE_DEV_SERVER_URL)) return;
+    event.preventDefault();
+  });
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);

@@ -4,8 +4,13 @@ export interface Product {
   id: string;
   sku: string;
   name: string;
+  description?: string;
   price: number;
-  stock_quantity: number;
+  cost: number;
+  stockQuantity: number;
+  minStockAlert: number;
+  location?: string;
+  isActive: boolean;
 }
 
 export interface CartItem extends Product {
@@ -15,6 +20,9 @@ export interface CartItem extends Product {
 interface PosState {
   products: Product[];
   cart: CartItem[];
+  isLoading: boolean;
+  error: string | null;
+  loadProducts: () => Promise<void>;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -22,17 +30,26 @@ interface PosState {
   total: number;
 }
 
-const mockProducts: Product[] = [
-  { id: '1', sku: 'REG-001', name: 'Taza Personalizada', price: 450, stock_quantity: 15 },
-  { id: '2', sku: 'REG-002', name: 'Libreta Decorada', price: 600, stock_quantity: 8 },
-  { id: '3', sku: 'REG-003', name: 'Lápiz Grabado', price: 150, stock_quantity: 50 },
-  { id: '4', sku: 'REG-004', name: 'Caja de Regalo Sorpresa', price: 1200, stock_quantity: 5 },
-];
-
 export const usePosStore = create<PosState>((set) => ({
-  products: mockProducts,
+  products: [],
   cart: [],
   total: 0,
+  isLoading: false,
+  error: null,
+
+  loadProducts: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await window.api.getProducts();
+      if (response.success) {
+        set({ products: response.data, isLoading: false });
+      } else {
+        set({ error: response.error, isLoading: false });
+      }
+    } catch (err: any) {
+      set({ error: err.message || 'Error loading products', isLoading: false });
+    }
+  },
 
   addToCart: (product) => set((state) => {
     const existingItem = state.cart.find(item => item.id === product.id);

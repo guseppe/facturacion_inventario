@@ -1,13 +1,48 @@
 import { usePosStore } from '../store/posStore';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function InvoiceScreen() {
   const { cart, total, clearCart } = usePosStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const clientName = location.state?.clientName || 'Cliente Mostrador';
+  const clientAddress = location.state?.clientAddress || '';
+  const invoiceNumber = location.state?.invoiceNumber || '';
+
+  const [settings, setSettings] = useState({
+    name: 'PAPELERÍA_CREATIVARD',
+    receiptFooterText: 'Detalles que inspiran',
+    currency: 'DOP',
+    address: 'Av. Ejemplo, Santiago',
+    bankName: 'BANCO POPULAR',
+    bankAccount: 'Cuenta 813299211',
+    ownerName: 'RAIDY D DURAN',
+    ownerId: '096-0000000-0'
+  });
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const res = await window.api.getStoreSettings();
+      if (res.success && res.data) {
+        setSettings({
+          name: res.data.name || 'PAPELERÍA_CREATIVARD',
+          receiptFooterText: res.data.receiptFooterText || 'Detalles que inspiran',
+          currency: res.data.currency || 'DOP',
+          address: res.data.address || 'Av. Ejemplo, Santiago',
+          bankName: res.data.bankName || 'BANCO POPULAR',
+          bankAccount: res.data.bankAccount || 'Cuenta 813299211',
+          ownerName: res.data.ownerName || 'RAIDY D DURAN',
+          ownerId: res.data.ownerId || '096-0000000-0'
+        });
+      }
+    }
+    fetchSettings();
+  }, []);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(amount);
+    return new Intl.NumberFormat('es-DO', { style: 'currency', currency: settings.currency }).format(amount);
   };
 
   const handlePrint = () => {
@@ -58,35 +93,40 @@ export default function InvoiceScreen() {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl font-medium" style={{ fontFamily: 'cursive', color: '#333' }}>Nombre:</span>
                   <div className="bg-pink-50 px-4 py-1 rounded-full flex-1">
-                    <span className="font-bold text-gray-700 uppercase">Cliente Mostrador</span>
+                    <span className="font-bold text-gray-700 uppercase">{clientName}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-medium" style={{ fontFamily: 'cursive', color: '#333' }}>Dirección:</span>
-                  <div className="bg-pink-50 px-4 py-1 rounded-full flex-1">
-                    <span className="font-bold text-gray-700 uppercase">SANTIAGO</span>
+                {clientAddress && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-medium" style={{ fontFamily: 'cursive', color: '#333' }}>Dirección:</span>
+                    <div className="bg-pink-50 px-4 py-1 rounded-full flex-1">
+                      <span className="font-bold text-gray-700 uppercase">{clientAddress}</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
             {/* Right Header */}
             <div className="w-1/2 flex flex-col items-end">
               <div className="text-center mb-4">
-                {/* Mock Logo Text */}
-                <h2 className="text-3xl font-black tracking-tighter text-gray-900 mb-1">
-                  <span className="text-pink-500">PAPELERÍA</span>_CREATIVARD
+                {/* Store Name & Info */}
+                <h2 className="text-3xl font-black tracking-tighter text-gray-900 mb-1 uppercase">
+                  {settings.name}
                 </h2>
-                <p className="text-xl text-gray-700" style={{ fontFamily: 'cursive' }}>Detalles que inspiran</p>
-                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1 flex justify-center gap-2">
-                  <span>Papelería</span> <span className="text-pink-300">♥</span>
-                  <span>Regalos Personalizados</span> <span className="text-pink-300">♥</span>
-                  <span>Manualidades</span>
-                </div>
+                <p className="text-xl text-gray-700" style={{ fontFamily: 'cursive' }}>{settings.receiptFooterText}</p>
+                <p className="text-sm text-gray-500 font-medium uppercase tracking-widest mt-1">{settings.address}</p>
               </div>
 
-              <div className="bg-pink-50 px-6 py-2 rounded-full border border-pink-100 shadow-sm">
-                <span className="font-bold text-gray-700 text-lg">{dateStr}</span>
+              <div className="flex flex-col items-end gap-2">
+                <div className="bg-pink-50 px-6 py-2 rounded-full border border-pink-100 shadow-sm">
+                  <span className="font-bold text-gray-700 text-lg">{dateStr}</span>
+                </div>
+                {invoiceNumber && (
+                  <div className="text-sm font-bold text-gray-500 tracking-wider">
+                    N° {invoiceNumber}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -155,14 +195,14 @@ export default function InvoiceScreen() {
                   <div className="w-10 h-10 border-4 border-white rounded-full border-t-transparent border-l-transparent transform rotate-45"></div>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1e3a8a] text-xl">BANCO POPULAR</h4>
-                  <p className="text-gray-800 font-medium text-lg">Cuenta 813299211</p>
+                  <h4 className="font-bold text-[#1e3a8a] text-xl uppercase">{settings.bankName || 'BANCO'}</h4>
+                  <p className="text-gray-800 font-medium text-lg">{settings.bankAccount || 'Cuenta no especificada'}</p>
                 </div>
               </div>
               
               <div className="border-t-2 border-pink-200 pt-2 w-3/4">
-                <h4 className="font-bold text-pink-600 text-lg uppercase tracking-wide">RAIDY D DURAN MARTINEZ</h4>
-                <p className="text-gray-800 font-medium text-lg">Cédula 096-0031356-4</p>
+                <h4 className="font-bold text-pink-600 text-lg uppercase tracking-wide">{settings.ownerName || 'TITULAR DE CUENTA'}</h4>
+                <p className="text-gray-800 font-medium text-lg">{settings.ownerId || 'Identificación'}</p>
               </div>
             </div>
 
@@ -170,9 +210,9 @@ export default function InvoiceScreen() {
             <div className="w-1/2 flex flex-col items-end text-center relative">
               <div className="absolute right-32 top-0 text-pink-300 transform -rotate-12 scale-150">♡</div>
               <div className="border-b border-gray-800 pb-1 w-64 relative z-10">
-                <span className="text-5xl text-[#1e3a8a] transform -rotate-6 inline-block" style={{ fontFamily: 'cursive' }}>Raidy Durán</span>
+                <span className="text-5xl text-[#1e3a8a] transform -rotate-6 inline-block" style={{ fontFamily: 'cursive' }}>{settings.ownerName.split(' ')[0] || 'Firma'}</span>
               </div>
-              <span className="text-gray-500 uppercase tracking-widest text-sm mt-2 w-64">Firma</span>
+              <span className="text-gray-500 uppercase tracking-widest text-sm mt-2 w-64">Firma Autorizada</span>
             </div>
           </div>
         </div>

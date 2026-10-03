@@ -5,9 +5,17 @@ contextBridge.exposeInMainWorld('api', {
   // Products
   getProducts: () => ipcRenderer.invoke('get-products'),
   createProduct: (productData: any) => ipcRenderer.invoke('create-product', productData),
+  updateProduct: (id: string, productData: any) => ipcRenderer.invoke('update-product', { id, ...productData }),
+  deleteProduct: (id: string) => ipcRenderer.invoke('delete-product', id),
   
   // Settings
   getStoreSettings: () => ipcRenderer.invoke('get-store-settings'),
+  updateStoreSettings: (settingsData: any) => ipcRenderer.invoke('update-store-settings', settingsData),
+
+  // Invoices & Transactions
+  createInvoice: (invoiceData: any) => ipcRenderer.invoke('create-invoice', invoiceData),
+  getInvoices: () => ipcRenderer.invoke('get-invoices'),
+  getInventoryTransactions: () => ipcRenderer.invoke('get-inventory-transactions'),
 });
 
 // Optionally keep generic ipcRenderer if still needed by some other parts, 

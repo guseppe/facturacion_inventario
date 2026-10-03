@@ -5,7 +5,7 @@
 ---
 
 ## 1. Control de Ejecución (Directivas para el Agente AI)
-- **Fase Activa:** Fase 2
+- **Fase Activa:** Fase 3
 - **Regla de IA:** Lee todo este documento para comprender la arquitectura y el contexto del sistema. Sin embargo, **debes generar código y estructurar archivos EXCLUSIVAMENTE para los objetivos de la "Fase Activa"**. Las fases posteriores proporcionan contexto de diseño a futuro, pero no deben programarse aún.
 
 ---
@@ -93,6 +93,7 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - **Soft Deletes (Borrado Lógico):** Prohibido el uso de `DELETE` físico en productos y usuarios para mantener intacta la reportería histórica.
 - **Resiliencia UI/UX:** Implementar llaves de idempotencia (`idempotency keys`) al cobrar para prevenir facturas duplicadas por clics múltiples.
 - **Integración de Hardware Nativas:** Al usar Electron, la impresión térmica y la lectura de códigos de barras (que actúan como teclados USB) deben procesarse de forma nativa sin depender de diálogos del navegador.
+- **Arquitectura Desacoplada (Service Layer):** La lógica de negocio (consultas a base de datos, transacciones) debe estar aislada en servicios independientes (ej. `services/`), sin depender directamente de Electron. Los handlers IPC solo deben actuar como controladores que conectan con estos servicios, permitiendo una fácil migración a un backend web en el futuro.
 
 ---
 
@@ -104,13 +105,13 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - Integrar Zustand con datos estáticos (mock data) simulados.
 - **Objetivo:** Entregar un diseño navegable 100% funcional visualmente, empaquetado como aplicación de escritorio de prueba para la aprobación del cliente. (Sin base de datos real aún).
 
-### Fase 2: Configuración del Motor de Base de Datos - *[FASE ACTUAL]*
+### Fase 2: Configuración del Motor de Base de Datos
 - Integrar SQLite y configurar el ORM (Prisma o Drizzle) en el *Main Process* de Electron.
 - Crear las migraciones iniciales para construir el esquema de la base de datos.
 - Configurar el `preload.js` y el `contextBridge` para exponer canales IPC de consulta y mutación.
 - **Objetivo:** Backend local (Main Process) operativo y conectado a un archivo `app.db` persistente.
 
-### Fase 3: Integración y Lógica Transaccional
+### Fase 3: Integración y Lógica Transaccional - *[FASE ACTUAL]*
 - Reemplazar mock data del frontend (Zustand) con llamadas a través de IPC (ej. `window.api.getProducts()`).
 - Implementar la lógica ACID de facturación y movimientos de inventario en Node.js.
 - **Objetivo:** Flujo completo de venta, actualización de inventario en tiempo real y persistencia local garantizada.

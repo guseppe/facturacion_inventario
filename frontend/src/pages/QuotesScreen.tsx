@@ -21,7 +21,7 @@ export default function QuotesScreen() {
             </h1>
             <p className="text-gray-500 mt-1">Gestión de presupuestos y cotizaciones</p>
           </div>
-          <button className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-medium shadow-md shadow-primary/20 flex items-center gap-2 transition-colors">
+          <button onClick={() => alert('Módulo de Cotizaciones estará disponible en la Fase 4.')} className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-medium shadow-md shadow-primary/20 flex items-center gap-2 transition-colors">
             <Plus size={20} />
             Nueva Cotización
           </button>
@@ -75,13 +75,13 @@ export default function QuotesScreen() {
                   </td>
                   <td className="py-4 px-6 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver">
+                      <button onClick={() => alert('Módulo de Cotizaciones estará disponible en la Fase 4.')} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver">
                         <Eye size={16} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Descargar PDF">
+                      <button onClick={() => alert('Módulo de Cotizaciones estará disponible en la Fase 4.')} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Descargar PDF">
                         <Download size={16} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Enviar por Email">
+                      <button onClick={() => alert('Módulo de Cotizaciones estará disponible en la Fase 4.')} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Enviar por Email">
                         <Send size={16} />
                       </button>
                     </div>
