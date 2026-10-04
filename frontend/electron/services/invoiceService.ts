@@ -59,7 +59,7 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
       }
 
       if (productRecord.type === 'STANDARD' || productRecord.type === 'MATERIAL') {
-        if (productRecord.manageStock && productRecord.stockQuantity !== null && productRecord.stockQuantity < item.quantity) {
+        if (productRecord.type === 'MATERIAL' && productRecord.manageStock && productRecord.stockQuantity !== null && productRecord.stockQuantity < item.quantity) {
           throw new Error(`Stock insuficiente para ${productRecord.name}`);
         }
         
@@ -93,7 +93,7 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
           if (component.type === 'STANDARD' || component.type === 'MATERIAL') {
             const consumption = item.quantity * recipeItem.quantity;
             
-            if (component.manageStock && component.stockQuantity !== null && component.stockQuantity < consumption) {
+            if (component.type === 'MATERIAL' && component.manageStock && component.stockQuantity !== null && component.stockQuantity < consumption) {
                 throw new Error(`Stock insuficiente para el componente ${component.name} (requerido para ${productRecord.name})`);
             }
             

@@ -114,7 +114,9 @@ export default function PosScreen() {
         <div className="flex-1 overflow-y-auto pr-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredProducts.map((product) => {
-              const isOutOfStock = product.manageStock && product.stockQuantity <= 0;
+              // Only MATERIAL products should be blocked if out of stock according to the new requirements
+              const isOutOfStock = product.type === 'MATERIAL' && product.manageStock && product.stockQuantity <= 0;
+              
               return (
                 <button 
                   key={product.id}
@@ -184,7 +186,7 @@ export default function PosScreen() {
                     <span className="text-sm w-4 text-center font-medium">{item.quantity}</span>
                     <button 
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={item.manageStock && item.quantity >= item.stockQuantity}
+                      disabled={item.type === 'MATERIAL' && item.manageStock && item.quantity >= item.stockQuantity}
                       className="p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
                     >
                       <Plus size={14} />
