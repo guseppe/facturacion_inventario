@@ -5,7 +5,7 @@
 ---
 
 ## 1. Control de Ejecución (Directivas para el Agente AI)
-- **Fase Activa:** Fase 5
+- **Fase Activa:** Fase 6
 - **Regla de IA:** Lee todo este documento para comprender la arquitectura y el contexto del sistema. Sin embargo, **debes generar código y estructurar archivos EXCLUSIVAMENTE para los objetivos de la "Fase Activa"**. Las fases posteriores proporcionan contexto de diseño a futuro, pero no deben programarse aún.
 
 ---
@@ -42,17 +42,26 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - `role` (String Enum: ADMIN, CASHIER)
 - `is_active` (Boolean, default True)
 
-### `Product` (Catálogo)
+### `Product` (Catálogo e Insumos)
 - `id` (UUID o CUID, PK)
 - `sku` (String, Unique, Index)
 - `name` (String)
 - `description` (Text, Nullable)
-- `price` (Decimal/Float)
-- `cost` (Decimal/Float) /* Solo visible para ADMIN */
-- `stock_quantity` (Integer, default 0)
-- `min_stock_alert` (Integer, default 5)
+- `type` (String Enum: STANDARD, MATERIAL, SERVICE, COMPOSITE) 
+  /* MATERIAL: Insumos (madera, tinta). SERVICE: No maneja stock (grabado). COMPOSITE: Ensamblado basado en receta. STANDARD: Producto regular (un peluche). */
+- `manage_stock` (Boolean, default True) /* False para servicios */
+- `price` (Decimal/Float) /* Precio de venta al público */
+- `cost` (Decimal/Float) /* Costo dinámico si es COMPOSITE, fijo si es MATERIAL/STANDARD */
+- `stock_quantity` (Decimal/Float, default 0) /* Decimal para permitir 0.5 planchas */
+- `min_stock_alert` (Decimal/Float, default 5)
 - `location` (String, Nullable) /* Ubicación o estante en el almacén */
 - `is_active` (Boolean, default True)
+
+### `ProductRecipe` (Receta de Producción / Bill of Materials)
+- `id` (UUID o CUID, PK)
+- `composite_product_id` (UUID, FK -> Product) /* El producto que se va a vender */
+- `component_product_id` (UUID, FK -> Product) /* El insumo o servicio utilizado */
+- `quantity` (Decimal/Float) /* Ej. 0.5 planchas de madera */
 
 ### `Invoice` (Facturas)
 - `id` (UUID o CUID, PK)
@@ -68,7 +77,7 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - `id` (UUID o CUID, PK)
 - `invoice_id` (UUID, FK -> Invoice)
 - `product_id` (UUID, FK -> Product)
-- `quantity` (Integer)
+- `quantity` (Decimal/Float)
 - `unit_price` (Decimal/Float)
 - `subtotal` (Decimal/Float)
 
@@ -76,7 +85,7 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - `id` (UUID o CUID, PK)
 - `product_id` (UUID, FK -> Product)
 - `type` (String Enum: SALE, RETURN, MANUAL_IN, MANUAL_OUT)
-- `quantity` (Integer) /* Positivo o negativo */
+- `quantity` (Decimal/Float) /* Positivo o negativo */
 - `reference_id` (String, Nullable) /* Ej. ID de la factura */
 - `date` (DateTime, default NOW)
 - `user_id` (UUID, FK -> User)
@@ -121,10 +130,17 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - Configurar el menú nativo de la ventana (Archivo -> Respaldar Base de Datos).
 - Configurar `electron-builder` para generar instaladores finales (`.exe` y `.dmg`).
 - **Objetivo:** Aplicación instalable, lista para producción y conectada al hardware del mostrador.
-### Fase 5: Reportes, Auditoría y Autenticación - *[FASE ACTUAL]*
+### Fase 5: Reportes, Auditoría y Autenticación
 - Integrar la Pantalla de Login al flujo principal para restringir el acceso al sistema mediante autenticación (validación de `username` y `password_hash` del modelo `User`).
 - Implementar el Dashboard de Reportes (mencionado en Fase 1) con consultas SQL agregadas para visualizar la situación general del negocio.
 - Desarrollar módulo de Ganancias y Pérdidas: calcular el costo de los bienes vendidos (COGS) frente a las ventas (usando el campo `cost` reservado para ADMIN).
 - Crear el reporte del estado de inventario: productos con bajo stock (`min_stock_alert`), valorizaciones del inventario, y auditoría histórica (`InventoryTransaction`).
 - Aprovechar los registros de Soft Deletes para garantizar que la reportería histórica (productos y usuarios borrados) sea precisa y no cause errores referenciales.
 - **Objetivo:** Brindar a los administradores una vista analítica clara de las finanzas y asegurar el acceso al sistema únicamente a personal autorizado.
+
+### Fase 6: Inventario de Producción y Recetas (Bill of Materials) - *[FASE ACTUAL]*
+- Modificar el esquema de la base de datos para soportar tipos de productos (`MATERIAL`, `SERVICE`, `COMPOSITE`) y cantidades fraccionales (`Decimal`).
+- Crear el modelo `ProductRecipe` para enlazar productos compuestos con sus insumos.
+- Desarrollar una interfaz en React para que el Admin pueda crear "Recetas" (ej. Placa = 0.5 Madera + 1 Grabado).
+- Actualizar la lógica transaccional de facturación: al vender un producto `COMPOSITE`, el sistema debe iterar sobre su receta y deducir automáticamente el stock de los materiales correspondientes, ignorando los que sean `SERVICE`.
+- Calcular el `cost` de los productos `COMPOSITE` dinámicamente sumando el costo de sus materiales.

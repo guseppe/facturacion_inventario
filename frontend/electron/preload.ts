@@ -27,6 +27,16 @@ contextBridge.exposeInMainWorld('api', {
   printReceipt: (htmlContent: string, printerName?: string) => ipcRenderer.invoke('print-receipt', htmlContent, printerName),
   backupDatabase: () => ipcRenderer.invoke('backup-database'),
   selectLogo: () => ipcRenderer.invoke('select-logo'),
+
+  // Auth
+  login: (credentials: any) => ipcRenderer.invoke('auth:login', credentials),
+  logout: () => ipcRenderer.invoke('auth:logout'),
+
+  // Reports
+  getDashboardMetrics: () => ipcRenderer.invoke('reports:getDashboardMetrics'),
+  getProfitAndLoss: (dateRange: any) => ipcRenderer.invoke('reports:getProfitAndLoss', dateRange),
+  getLowStockAlerts: () => ipcRenderer.invoke('reports:getLowStockAlerts'),
+  getInventoryAudit: (filters: any) => ipcRenderer.invoke('reports:getInventoryAudit', filters),
 });
 
 // Optionally keep generic ipcRenderer if still needed by some other parts, 

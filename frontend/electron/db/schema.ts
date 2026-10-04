@@ -55,6 +55,7 @@ export const invoiceItems = sqliteTable('invoice_items', {
   productId: text('product_id').references(() => products.id).notNull(),
   quantity: integer('quantity').notNull(),
   unitPrice: real('unit_price').notNull(),
+  cost: real('cost').notNull().default(0),
   subtotal: real('subtotal').notNull(),
 });
 

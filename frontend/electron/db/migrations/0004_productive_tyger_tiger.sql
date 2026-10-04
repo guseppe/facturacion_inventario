@@ -1,0 +1,1 @@
+ALTER TABLE `invoice_items` ADD `cost` real DEFAULT 0 NOT NULL;

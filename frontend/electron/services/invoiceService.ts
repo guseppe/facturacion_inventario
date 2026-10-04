@@ -61,6 +61,7 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        cost: productRecord.cost,
         subtotal: item.quantity * item.unitPrice
       }).run();
 

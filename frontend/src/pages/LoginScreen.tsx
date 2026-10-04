@@ -1,12 +1,31 @@
+import { useState } from 'react';
 import { Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 export default function LoginScreen() {
   const navigate = useNavigate();
+  const login = useAuthStore((state) => state.login);
+  
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('1234');
+  const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/');
+    setError('');
+    
+    try {
+      const result = await window.api.login({ username, password });
+      if (result.success) {
+        login(result.data);
+        navigate('/');
+      } else {
+        setError(result.error || 'Error al iniciar sesión');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error de conexión');
+    }
   };
 
   return (
@@ -23,12 +42,19 @@ export default function LoginScreen() {
         <div className="p-8">
           <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Iniciar Sesión</h2>
           
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
               <input 
                 type="text" 
-                defaultValue="admin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
               />
             </div>
@@ -37,7 +63,8 @@ export default function LoginScreen() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
               <input 
                 type="password" 
-                defaultValue="123456"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
               />
             </div>

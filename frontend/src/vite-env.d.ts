@@ -22,6 +22,16 @@ interface Window {
     printReceipt: (htmlContent: string, printerName?: string) => Promise<any>;
     backupDatabase: () => Promise<any>;
     selectLogo: () => Promise<any>;
+
+    // Auth
+    login: (credentials: any) => Promise<any>;
+    logout: () => Promise<any>;
+
+    // Reports
+    getDashboardMetrics: () => Promise<any>;
+    getProfitAndLoss: (dateRange?: any) => Promise<any>;
+    getLowStockAlerts: () => Promise<any>;
+    getInventoryAudit: (filters?: any) => Promise<any>;
   };
   ipcRenderer: any;
 }
