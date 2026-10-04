@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { invoices, invoiceItems, products, inventoryTransactions } from '../db/schema';
-import { eq, and, sql, lte, desc, gte } from 'drizzle-orm';
+import { eq, and, sql, lte, desc, gte, inArray } from 'drizzle-orm';
 
 export async function getDashboardMetricsService() {
   const today = new Date();
@@ -73,9 +73,27 @@ export async function getLowStockAlertsService() {
     .where(
       and(
         eq(products.isActive, true),
+        inArray(products.type, ['STANDARD', 'MATERIAL']),
+        eq(products.manageStock, true),
         lte(products.stockQuantity, products.minStockAlert)
       )
     );
+}
+
+export async function getInventoryValuationService() {
+  const result = await db.select({
+    totalValue: sql<number>`SUM(${products.stockQuantity} * ${products.cost})`,
+  })
+  .from(products)
+  .where(
+    and(
+      eq(products.isActive, true),
+      inArray(products.type, ['STANDARD', 'MATERIAL']),
+      eq(products.manageStock, true)
+    )
+  );
+  
+  return result[0]?.totalValue || 0;
 }
 
 export async function getInventoryAuditService(filters?: { productId?: string }) {
@@ -89,7 +107,8 @@ export async function getInventoryAuditService(filters?: { productId?: string })
     transaction: inventoryTransactions,
     product: {
       name: products.name,
-      sku: products.sku
+      sku: products.sku,
+      type: products.type
     }
   })
   .from(inventoryTransactions)

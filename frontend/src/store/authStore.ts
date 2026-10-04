@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface User {
   id: string;
@@ -15,10 +16,17 @@ interface AuthState {
   isAdmin: () => boolean;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  login: (user) => set({ user }),
-  logout: () => set({ user: null }),
-  isAuthenticated: () => get().user !== null,
-  isAdmin: () => get().user?.role === 'ADMIN',
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      login: (user) => set({ user }),
+      logout: () => set({ user: null }),
+      isAuthenticated: () => get().user !== null,
+      isAdmin: () => get().user?.role === 'ADMIN',
+    }),
+    {
+      name: 'pos-auth-storage', // name of the item in the storage (must be unique)
+    }
+  )
+);

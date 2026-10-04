@@ -180,6 +180,16 @@ export function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle('reports:getInventoryValuation', async () => {
+    try {
+      const { getInventoryValuationService } = require('../services/reportService');
+      const data = await getInventoryValuationService();
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
   ipcMain.handle('reports:getInventoryAudit', async (_, filters) => {
     try {
       const { getInventoryAuditService } = require('../services/reportService');

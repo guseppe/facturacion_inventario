@@ -24,6 +24,11 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    watch: {
+      ignored: ['**/*.db', '**/*.db-*']
+    }
+  },
   base: './', // Use relative paths for electron
   build: {
     rollupOptions: {

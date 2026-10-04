@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('api', {
   getDashboardMetrics: () => ipcRenderer.invoke('reports:getDashboardMetrics'),
   getProfitAndLoss: (dateRange: any) => ipcRenderer.invoke('reports:getProfitAndLoss', dateRange),
   getLowStockAlerts: () => ipcRenderer.invoke('reports:getLowStockAlerts'),
+  getInventoryValuation: () => ipcRenderer.invoke('reports:getInventoryValuation'),
   getInventoryAudit: (filters: any) => ipcRenderer.invoke('reports:getInventoryAudit', filters),
 });
 

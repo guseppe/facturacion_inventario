@@ -1,12 +1,11 @@
 import { db } from '../db';
-import { products, invoices, invoiceItems, inventoryTransactions, users } from '../db/schema';
+import { products, invoices, invoiceItems, inventoryTransactions, users, productRecipes } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
 import crypto from 'crypto';
 
 export async function createInvoiceService(data: { items: any[], paymentMethod: string, totalAmount: number, clientName?: string, clientAddress?: string }) {
   const { items, paymentMethod, totalAmount, clientName, clientAddress } = data;
 
-  // Create a default user if none exists (for simplicity in Phase 3)
   let defaultUser = await db.select().from(users).limit(1);
   if (defaultUser.length === 0) {
     const userId = crypto.randomUUID();
@@ -19,12 +18,9 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
     }).returning();
     defaultUser = newUser;
   }
-
   const userId = defaultUser[0].id;
 
-  // ATOMIC TRANSACTION (Synchronous for better-sqlite3)
   const result = db.transaction((tx) => {
-    // 1. Create Invoice
     const invoiceId = crypto.randomUUID();
     const invoiceNumber = `INV-${Date.now()}`;
 
@@ -40,18 +36,9 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
       clientAddress: clientAddress || null
     }).returning().get();
 
-    // 2. Loop through items
     for (const item of items) {
-      // Verify stock first
       const productRecord = tx.select().from(products).where(eq(products.id, item.productId)).get();
-      
-      if (!productRecord) {
-        throw new Error(`Product ${item.productId} not found`);
-      }
-      
-      if (productRecord.stockQuantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${productRecord.name}`);
-      }
+      if (!productRecord) throw new Error(`Product ${item.productId} not found`);
 
       // Insert InvoiceItem
       const invoiceItemId = crypto.randomUUID();
@@ -65,23 +52,71 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
         subtotal: item.quantity * item.unitPrice
       }).run();
 
-      // Insert InventoryTransaction
-      const transactionId = crypto.randomUUID();
-      tx.insert(inventoryTransactions).values({
-        id: transactionId,
-        productId: item.productId,
-        type: 'SALE',
-        quantity: -item.quantity, // Negative for sale
-        referenceId: invoiceId,
-        date: new Date(),
-        userId
-      }).run();
+      // Process inventory deduction based on product type
+      if (productRecord.type === 'SERVICE') {
+        // Services do not manage stock, do nothing
+        continue;
+      }
 
-      // Update Product Stock
-      tx.update(products)
-        .set({ stockQuantity: productRecord.stockQuantity - item.quantity })
-        .where(eq(products.id, item.productId))
-        .run();
+      if (productRecord.type === 'STANDARD' || productRecord.type === 'MATERIAL') {
+        if (productRecord.manageStock && productRecord.stockQuantity !== null && productRecord.stockQuantity < item.quantity) {
+          throw new Error(`Stock insuficiente para ${productRecord.name}`);
+        }
+        
+        if (productRecord.manageStock) {
+          tx.insert(inventoryTransactions).values({
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            type: 'SALE',
+            quantity: -item.quantity,
+            referenceId: invoiceId,
+            date: new Date(),
+            userId,
+            notes: `Venta directa`
+          }).run();
+
+          tx.update(products)
+            .set({ stockQuantity: (productRecord.stockQuantity || 0) - item.quantity })
+            .where(eq(products.id, item.productId))
+            .run();
+        }
+      }
+
+      if (productRecord.type === 'COMPOSITE') {
+        // Fetch Recipe
+        const recipeItemsList = tx.select().from(productRecipes).where(eq(productRecipes.compositeProductId, item.productId)).all();
+        
+        for (const recipeItem of recipeItemsList) {
+          const component = tx.select().from(products).where(eq(products.id, recipeItem.componentProductId)).get();
+          if (!component) continue;
+          
+          if (component.type === 'STANDARD' || component.type === 'MATERIAL') {
+            const consumption = item.quantity * recipeItem.quantity;
+            
+            if (component.manageStock && component.stockQuantity !== null && component.stockQuantity < consumption) {
+                throw new Error(`Stock insuficiente para el componente ${component.name} (requerido para ${productRecord.name})`);
+            }
+            
+            if (component.manageStock) {
+              tx.insert(inventoryTransactions).values({
+                id: crypto.randomUUID(),
+                productId: component.id,
+                type: 'SALE',
+                quantity: -consumption,
+                referenceId: invoiceId,
+                date: new Date(),
+                userId,
+                notes: `Consumo por ensamble. Derivado de la Factura ${invoiceNumber} (Venta de: ${productRecord.name})`
+              }).run();
+
+              tx.update(products)
+                .set({ stockQuantity: (component.stockQuantity || 0) - consumption })
+                .where(eq(products.id, component.id))
+                .run();
+            }
+          }
+        }
+      }
     }
 
     return newInvoice;

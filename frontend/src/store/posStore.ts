@@ -5,6 +5,9 @@ export interface Product {
   sku: string;
   name: string;
   description?: string;
+  type: string;
+  manageStock: boolean;
+  recipes?: any[];
   price: number;
   cost: number;
   stockQuantity: number;

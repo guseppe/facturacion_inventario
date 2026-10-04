@@ -28,12 +28,21 @@ export const products = sqliteTable('products', {
   sku: text('sku').notNull().unique(),
   name: text('name').notNull(),
   description: text('description'),
+  type: text('type', { enum: ['STANDARD', 'MATERIAL', 'SERVICE', 'COMPOSITE'] }).notNull().default('STANDARD'),
+  manageStock: integer('manage_stock', { mode: 'boolean' }).default(true),
   price: real('price').notNull(),
   cost: real('cost').notNull(),
-  stockQuantity: integer('stock_quantity').default(0),
-  minStockAlert: integer('min_stock_alert').default(5),
+  stockQuantity: real('stock_quantity').default(0),
+  minStockAlert: real('min_stock_alert').default(5),
   location: text('location'),
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
+});
+
+export const productRecipes = sqliteTable('product_recipes', {
+  id: text('id').primaryKey(),
+  compositeProductId: text('composite_product_id').references(() => products.id).notNull(),
+  componentProductId: text('component_product_id').references(() => products.id).notNull(),
+  quantity: real('quantity').notNull(),
 });
 
 export const invoices = sqliteTable('invoices', {
@@ -53,7 +62,7 @@ export const invoiceItems = sqliteTable('invoice_items', {
   id: text('id').primaryKey(),
   invoiceId: text('invoice_id').references(() => invoices.id).notNull(),
   productId: text('product_id').references(() => products.id).notNull(),
-  quantity: integer('quantity').notNull(),
+  quantity: real('quantity').notNull(),
   unitPrice: real('unit_price').notNull(),
   cost: real('cost').notNull().default(0),
   subtotal: real('subtotal').notNull(),
@@ -63,7 +72,7 @@ export const inventoryTransactions = sqliteTable('inventory_transactions', {
   id: text('id').primaryKey(),
   productId: text('product_id').references(() => products.id).notNull(),
   type: text('type').notNull(), // SALE, RETURN, MANUAL_IN, MANUAL_OUT
-  quantity: integer('quantity').notNull(),
+  quantity: real('quantity').notNull(),
   referenceId: text('reference_id'),
   date: integer('date', { mode: 'timestamp' }).notNull(),
   userId: text('user_id').references(() => users.id).notNull(),
@@ -85,7 +94,7 @@ export const quoteItems = sqliteTable('quote_items', {
   id: text('id').primaryKey(),
   quoteId: text('quote_id').references(() => quotes.id).notNull(),
   productId: text('product_id').references(() => products.id).notNull(),
-  quantity: integer('quantity').notNull(),
+  quantity: real('quantity').notNull(),
   unitPrice: real('unit_price').notNull(),
   subtotal: real('subtotal').notNull(),
 });

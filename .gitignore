@@ -8,3 +8,5 @@ frontend/dist-electron/
 
 # Database
 *.db
+*.db-shm
+*.db-wal
