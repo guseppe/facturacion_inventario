@@ -31,6 +31,7 @@ interface Window {
     getDashboardMetrics: () => Promise<any>;
     getProfitAndLoss: (dateRange?: any) => Promise<any>;
     getLowStockAlerts: () => Promise<any>;
+    getInventoryValuation: () => Promise<any>;
     getInventoryAudit: (filters?: any) => Promise<any>;
   };
   ipcRenderer: any;
