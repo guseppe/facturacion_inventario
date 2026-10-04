@@ -12,6 +12,7 @@ export const storeSettings = sqliteTable('store_settings', {
   bankAccount: text('bank_account'),
   ownerName: text('owner_name'),
   ownerId: text('owner_id'),
+  printerName: text('printer_name'),
 });
 
 export const users = sqliteTable('users', {
@@ -66,4 +67,24 @@ export const inventoryTransactions = sqliteTable('inventory_transactions', {
   date: integer('date', { mode: 'timestamp' }).notNull(),
   userId: text('user_id').references(() => users.id).notNull(),
   notes: text('notes'),
+});
+
+export const quotes = sqliteTable('quotes', {
+  id: text('id').primaryKey(),
+  quoteNumber: text('quote_number').notNull().unique(),
+  date: integer('date', { mode: 'timestamp' }).notNull(),
+  totalAmount: real('total_amount').notNull(),
+  userId: text('user_id').references(() => users.id).notNull(),
+  status: text('status').notNull(), // PENDING, APPROVED, REJECTED
+  clientName: text('client_name').default('Cliente Mostrador'),
+  clientAddress: text('client_address'),
+});
+
+export const quoteItems = sqliteTable('quote_items', {
+  id: text('id').primaryKey(),
+  quoteId: text('quote_id').references(() => quotes.id).notNull(),
+  productId: text('product_id').references(() => products.id).notNull(),
+  quantity: integer('quantity').notNull(),
+  unitPrice: real('unit_price').notNull(),
+  subtotal: real('subtotal').notNull(),
 });

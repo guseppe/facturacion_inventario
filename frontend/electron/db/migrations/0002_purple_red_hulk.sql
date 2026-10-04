@@ -1,0 +1,1 @@
+ALTER TABLE `store_settings` ADD `printer_name` text;

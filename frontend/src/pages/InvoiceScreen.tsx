@@ -4,12 +4,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function InvoiceScreen() {
-  const { cart, total, clearCart } = usePosStore();
+  const { cart, total: posTotal, clearCart } = usePosStore();
   const navigate = useNavigate();
   const location = useLocation();
   const clientName = location.state?.clientName || 'Cliente Mostrador';
   const clientAddress = location.state?.clientAddress || '';
   const invoiceNumber = location.state?.invoiceNumber || '';
+  
+  const isQuote = invoiceNumber?.startsWith('COT-');
+  const docTitle = isQuote ? 'COTIZACIÓN' : 'FACTURA';
+  const docLabel = isQuote ? 'Cotización' : 'Factura';
+  
+  // Accept items from state (for quotes/history) or fallback to active POS cart
+  const items = location.state?.items || cart;
+  const total = location.state?.total || posTotal;
 
   const [settings, setSettings] = useState({
     name: 'PAPELERÍA_CREATIVARD',
@@ -19,7 +27,9 @@ export default function InvoiceScreen() {
     bankName: 'BANCO POPULAR',
     bankAccount: 'Cuenta 813299211',
     ownerName: 'RAIDY D DURAN',
-    ownerId: '096-0000000-0'
+    ownerId: '096-0000000-0',
+    printerName: '',
+    logoUrl: ''
   });
 
   useEffect(() => {
@@ -34,7 +44,9 @@ export default function InvoiceScreen() {
           bankName: res.data.bankName || 'BANCO POPULAR',
           bankAccount: res.data.bankAccount || 'Cuenta 813299211',
           ownerName: res.data.ownerName || 'RAIDY D DURAN',
-          ownerId: res.data.ownerId || '096-0000000-0'
+          ownerId: res.data.ownerId || '096-0000000-0',
+          printerName: res.data.printerName || '',
+          logoUrl: res.data.logoUrl || ''
         });
       }
     }
@@ -47,6 +59,78 @@ export default function InvoiceScreen() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleThermalPrint = async () => {
+    if (!settings.printerName) {
+      alert('No hay impresora térmica configurada. Por favor vaya a Configuración.');
+      return;
+    }
+
+    // Build a simple 80mm thermal receipt HTML
+    const itemsHtml = cart.map(item => `
+      <tr>
+        <td style="padding: 2px 0;">${item.name.substring(0, 20)}</td>
+        <td style="padding: 2px 0; text-align: center;">${item.quantity}</td>
+        <td style="padding: 2px 0; text-align: right;">${formatCurrency(item.price * item.quantity)}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { 
+            font-family: monospace; 
+            width: 80mm; 
+            margin: 0; 
+            padding: 5mm; 
+            font-size: 12px; 
+          }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .font-bold { font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+          th { border-bottom: 1px dashed #000; padding-bottom: 5px; }
+          .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        ${settings.logoUrl ? `<div class="text-center"><img src="${settings.logoUrl}" style="max-width: 150px; margin-bottom: 10px;" /></div>` : ''}
+        <div class="text-center font-bold" style="font-size: 16px;">${settings.name}</div>
+        <div class="text-center">${settings.address}</div>
+        <div class="divider"></div>
+        <div>Fecha: ${new Date().toLocaleString()}</div>
+        <div>${docLabel}: ${invoiceNumber}</div>
+        <div>Cliente: ${clientName}</div>
+        <div class="divider"></div>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align: left;">Cant/Desc</th>
+              <th style="text-align: center;">C.</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div class="text-right font-bold" style="font-size: 14px;">Total: ${formatCurrency(total)}</div>
+        <div class="divider"></div>
+        <div class="text-center">${settings.receiptFooterText}</div>
+        <div class="text-center" style="margin-top: 10px;">¡Gracias por su compra!</div>
+      </body>
+      </html>
+    `;
+
+    const res = await window.api.printReceipt(html, settings.printerName);
+    if (!res.success) {
+      alert('Error al imprimir: ' + res.error);
+    }
   };
 
   const handleBack = () => {
@@ -66,12 +150,20 @@ export default function InvoiceScreen() {
         >
           <ArrowLeft size={20} /> Nueva Venta
         </button>
-        <button 
-          onClick={handlePrint}
-          className="flex items-center gap-2 bg-primary text-white px-6 py-2 rounded-lg shadow-lg hover:bg-primary-dark transition-colors"
-        >
-          <Printer size={20} /> Imprimir Factura
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleThermalPrint}
+            className="flex items-center gap-2 bg-gray-800 text-white px-6 py-2 rounded-lg shadow-lg hover:bg-gray-900 transition-colors"
+          >
+            <Printer size={20} /> Ticket Térmico
+          </button>
+          <button 
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-primary text-white px-6 py-2 rounded-lg shadow-lg hover:bg-primary-dark transition-colors"
+          >
+            <Printer size={20} /> {docLabel} A4
+          </button>
+        </div>
       </div>
 
       {/* Invoice A4 Container */}
@@ -86,7 +178,7 @@ export default function InvoiceScreen() {
             {/* Left Header */}
             <div className="flex flex-col gap-6 w-1/2">
               <div className="bg-pink-100/80 px-8 py-3 rounded-full inline-block border-2 border-pink-200/50 shadow-sm w-fit transform -rotate-2">
-                <h1 className="text-4xl font-black text-gray-800 tracking-wider" style={{ fontFamily: 'Impact, sans-serif' }}>FACTURA</h1>
+                <h1 className="text-3xl sm:text-4xl font-black text-gray-800 tracking-wider" style={{ fontFamily: 'Impact, sans-serif' }}>{docTitle}</h1>
               </div>
               
               <div className="space-y-4 mt-4">
@@ -109,8 +201,11 @@ export default function InvoiceScreen() {
 
             {/* Right Header */}
             <div className="w-1/2 flex flex-col items-end">
-              <div className="text-center mb-4">
+              <div className="text-center mb-4 flex flex-col items-center">
                 {/* Store Name & Info */}
+                {settings.logoUrl && (
+                  <img src={settings.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-2 rounded-lg" />
+                )}
                 <h2 className="text-3xl font-black tracking-tighter text-gray-900 mb-1 uppercase">
                   {settings.name}
                 </h2>
@@ -144,13 +239,13 @@ export default function InvoiceScreen() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cart.length > 0 ? (
-                    cart.map((item, index) => (
-                      <tr key={item.id} className={index % 2 === 0 ? 'bg-pink-50/30' : 'bg-white'}>
-                        <td className="py-4 px-6 font-bold text-gray-700 text-left uppercase">{item.name}</td>
+                  {items.length > 0 ? (
+                    items.map((item: any, index: number) => (
+                      <tr key={item.id || item.productId} className={index % 2 === 0 ? 'bg-pink-50/30' : 'bg-white'}>
+                        <td className="py-4 px-6 font-bold text-gray-700 text-left uppercase">{item.name || 'ARTÍCULO'}</td>
                         <td className="py-4 px-6 font-bold text-gray-700">{item.quantity}</td>
-                        <td className="py-4 px-6 font-bold text-gray-700">{formatCurrency(item.price)}</td>
-                        <td className="py-4 px-6 font-bold text-gray-700">{formatCurrency(item.price * item.quantity)}</td>
+                        <td className="py-4 px-6 font-bold text-gray-700">{formatCurrency(item.price || item.unitPrice)}</td>
+                        <td className="py-4 px-6 font-bold text-gray-700">{formatCurrency((item.price || item.unitPrice) * item.quantity)}</td>
                       </tr>
                     ))
                   ) : (
@@ -162,7 +257,7 @@ export default function InvoiceScreen() {
                     </tr>
                   )}
                   {/* Empty filler rows to match design */}
-                  {[...Array(Math.max(0, 5 - (cart.length || 1)))].map((_, i) => (
+                  {[...Array(Math.max(0, 5 - (items.length || 1)))].map((_, i) => (
                     <tr key={`empty-${i}`} className={i % 2 === 0 ? 'bg-pink-50/30' : 'bg-white'}>
                       <td className="py-6 px-6"></td>
                       <td className="py-6 px-6"></td>
@@ -173,7 +268,7 @@ export default function InvoiceScreen() {
                   {/* Total Row */}
                   <tr className="border-t-[3px] border-[#d4a373] bg-pink-100/40">
                     <td colSpan={3} className="py-4 px-6 text-right text-2xl font-normal text-gray-800" style={{ fontFamily: 'cursive' }}>Gran Total</td>
-                    <td className="py-4 px-6 font-black text-gray-900 text-xl">{cart.length > 0 ? formatCurrency(total) : 'RD$2,000.00'}</td>
+                    <td className="py-4 px-6 font-black text-gray-900 text-xl">{items.length > 0 ? formatCurrency(total) : 'RD$2,000.00'}</td>
                   </tr>
                 </tbody>
               </table>
@@ -209,8 +304,13 @@ export default function InvoiceScreen() {
             {/* Signature Area */}
             <div className="w-1/2 flex flex-col items-end text-center relative">
               <div className="absolute right-32 top-0 text-pink-300 transform -rotate-12 scale-150">♡</div>
-              <div className="border-b border-gray-800 pb-1 w-64 relative z-10">
-                <span className="text-5xl text-[#1e3a8a] transform -rotate-6 inline-block" style={{ fontFamily: 'cursive' }}>{settings.ownerName.split(' ')[0] || 'Firma'}</span>
+              <div className="border-b border-gray-800 pb-1 w-64 relative z-10 flex justify-center overflow-hidden">
+                <span 
+                  className="text-4xl text-[#1e3a8a] transform -rotate-6 inline-block whitespace-nowrap" 
+                  style={{ fontFamily: "'Dancing Script', cursive" }}
+                >
+                  {settings.ownerName ? settings.ownerName.split(' ').slice(0, 2).join(' ') : 'Firma'}
+                </span>
               </div>
               <span className="text-gray-500 uppercase tracking-widest text-sm mt-2 w-64">Firma Autorizada</span>
             </div>

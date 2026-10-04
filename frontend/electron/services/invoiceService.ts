@@ -91,7 +91,25 @@ export async function createInvoiceService(data: { items: any[], paymentMethod: 
 
 export async function getInvoicesService() {
   const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.date));
-  return allInvoices;
+  
+  const invoicesWithItems = [];
+  for (const invoice of allInvoices) {
+    const items = await db.select({
+      id: invoiceItems.id,
+      productId: invoiceItems.productId,
+      quantity: invoiceItems.quantity,
+      unitPrice: invoiceItems.unitPrice,
+      subtotal: invoiceItems.subtotal,
+      name: products.name,
+    })
+    .from(invoiceItems)
+    .leftJoin(products, eq(invoiceItems.productId, products.id))
+    .where(eq(invoiceItems.invoiceId, invoice.id));
+    
+    invoicesWithItems.push({ ...invoice, items });
+  }
+  
+  return invoicesWithItems;
 }
 
 export async function getInventoryTransactionsService() {

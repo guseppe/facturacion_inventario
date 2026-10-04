@@ -16,6 +16,17 @@ contextBridge.exposeInMainWorld('api', {
   createInvoice: (invoiceData: any) => ipcRenderer.invoke('create-invoice', invoiceData),
   getInvoices: () => ipcRenderer.invoke('get-invoices'),
   getInventoryTransactions: () => ipcRenderer.invoke('get-inventory-transactions'),
+
+  // Quotes
+  createQuote: (quoteData: any) => ipcRenderer.invoke('create-quote', quoteData),
+  getQuotes: () => ipcRenderer.invoke('get-quotes'),
+  updateQuoteStatus: (id: string, status: string) => ipcRenderer.invoke('update-quote-status', id, status),
+
+  // Peripherals and Backup
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  printReceipt: (htmlContent: string, printerName?: string) => ipcRenderer.invoke('print-receipt', htmlContent, printerName),
+  backupDatabase: () => ipcRenderer.invoke('backup-database'),
+  selectLogo: () => ipcRenderer.invoke('select-logo'),
 });
 
 // Optionally keep generic ipcRenderer if still needed by some other parts, 

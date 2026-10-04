@@ -5,7 +5,8 @@ import SettingsScreen from './pages/SettingsScreen';
 import LoginScreen from './pages/LoginScreen';
 import QuotesScreen from './pages/QuotesScreen';
 import InvoiceScreen from './pages/InvoiceScreen';
-import { Store, LayoutDashboard, Package, Settings, FileText, LogOut } from 'lucide-react';
+import HistoryScreen from './pages/HistoryScreen';
+import { Store, LayoutDashboard, Package, Settings, FileText, Receipt, LogOut } from 'lucide-react';
 
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -33,6 +34,9 @@ function Layout({ children }: { children: React.ReactNode }) {
           <Link to="/quotes" className={`p-3 rounded-xl flex justify-center transition-colors ${location.pathname === '/quotes' ? 'text-primary bg-primary/10' : 'text-gray-500 hover:text-primary hover:bg-primary/5'}`} title="Cotizaciones">
             <FileText size={24} />
           </Link>
+          <Link to="/history" className={`p-3 rounded-xl flex justify-center transition-colors ${location.pathname === '/history' ? 'text-primary bg-primary/10' : 'text-gray-500 hover:text-primary hover:bg-primary/5'}`} title="Historial de Ventas">
+            <Receipt size={24} />
+          </Link>
           <Link to="/settings" className={`p-3 rounded-xl flex justify-center transition-colors ${location.pathname === '/settings' ? 'text-primary bg-primary/10' : 'text-gray-500 hover:text-primary hover:bg-primary/5'}`} title="Configuración">
             <Settings size={24} />
           </Link>
@@ -53,7 +57,25 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { useEffect } from 'react';
+
 function App() {
+  useEffect(() => {
+    async function loadTheme() {
+      try {
+        const res = await window.api.getStoreSettings();
+        if (res.success && res.data && res.data.primaryColor) {
+          document.documentElement.style.setProperty('--color-primary', res.data.primaryColor);
+          // Darken the primary color for the -dark variant using color-mix
+          document.documentElement.style.setProperty('--color-primary-dark', `color-mix(in srgb, ${res.data.primaryColor} 80%, black)`);
+        }
+      } catch (e) {
+        console.error("Error loading theme", e);
+      }
+    }
+    loadTheme();
+  }, []);
+
   return (
     <Router>
       <Layout>
@@ -61,6 +83,7 @@ function App() {
           <Route path="/" element={<PosScreen />} />
           <Route path="/inventory" element={<InventoryScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/history" element={<HistoryScreen />} />
           <Route path="/quotes" element={<QuotesScreen />} />
           <Route path="/invoice" element={<InvoiceScreen />} />
           <Route path="/login" element={<LoginScreen />} />

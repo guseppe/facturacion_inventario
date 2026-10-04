@@ -5,7 +5,7 @@
 ---
 
 ## 1. Control de Ejecución (Directivas para el Agente AI)
-- **Fase Activa:** Fase 3
+- **Fase Activa:** Fase 5
 - **Regla de IA:** Lee todo este documento para comprender la arquitectura y el contexto del sistema. Sin embargo, **debes generar código y estructurar archivos EXCLUSIVAMENTE para los objetivos de la "Fase Activa"**. Las fases posteriores proporcionan contexto de diseño a futuro, pero no deben programarse aún.
 
 ---
@@ -111,7 +111,7 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - Configurar el `preload.js` y el `contextBridge` para exponer canales IPC de consulta y mutación.
 - **Objetivo:** Backend local (Main Process) operativo y conectado a un archivo `app.db` persistente.
 
-### Fase 3: Integración y Lógica Transaccional - *[FASE ACTUAL]*
+### Fase 3: Integración y Lógica Transaccional
 - Reemplazar mock data del frontend (Zustand) con llamadas a través de IPC (ej. `window.api.getProducts()`).
 - Implementar la lógica ACID de facturación y movimientos de inventario en Node.js.
 - **Objetivo:** Flujo completo de venta, actualización de inventario en tiempo real y persistencia local garantizada.
@@ -121,3 +121,10 @@ Aplicación de escritorio nativa (Desktop App) para la gestión de facturación,
 - Configurar el menú nativo de la ventana (Archivo -> Respaldar Base de Datos).
 - Configurar `electron-builder` para generar instaladores finales (`.exe` y `.dmg`).
 - **Objetivo:** Aplicación instalable, lista para producción y conectada al hardware del mostrador.
+### Fase 5: Reportes, Auditoría y Autenticación - *[FASE ACTUAL]*
+- Integrar la Pantalla de Login al flujo principal para restringir el acceso al sistema mediante autenticación (validación de `username` y `password_hash` del modelo `User`).
+- Implementar el Dashboard de Reportes (mencionado en Fase 1) con consultas SQL agregadas para visualizar la situación general del negocio.
+- Desarrollar módulo de Ganancias y Pérdidas: calcular el costo de los bienes vendidos (COGS) frente a las ventas (usando el campo `cost` reservado para ADMIN).
+- Crear el reporte del estado de inventario: productos con bajo stock (`min_stock_alert`), valorizaciones del inventario, y auditoría histórica (`InventoryTransaction`).
+- Aprovechar los registros de Soft Deletes para garantizar que la reportería histórica (productos y usuarios borrados) sea precisa y no cause errores referenciales.
+- **Objetivo:** Brindar a los administradores una vista analítica clara de las finanzas y asegurar el acceso al sistema únicamente a personal autorizado.

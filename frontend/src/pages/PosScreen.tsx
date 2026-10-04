@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PosScreen() {
-  const { products, cart, total, addToCart, removeFromCart, updateQuantity, loadProducts } = usePosStore();
+  const { products, cart, total, addToCart, removeFromCart, updateQuantity, loadProducts, clearCart } = usePosStore();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'TRANSFER'>('CASH');
@@ -50,6 +50,38 @@ export default function PosScreen() {
         navigate('/invoice', { state: { invoiceNumber: response.data?.invoiceNumber, clientName: clientName || 'Cliente Mostrador', clientAddress: clientAddress || '' } }); // Navigate with state
       } else {
         alert('Error al procesar el cobro: ' + response.error);
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleQuote = async () => {
+    if (cart.length === 0) return;
+    setIsProcessing(true);
+    try {
+      const items = cart.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        unitPrice: item.price
+      }));
+      
+      const result = await window.api.createQuote({
+        items,
+        totalAmount: total,
+        clientName: clientName || 'Cliente Mostrador',
+        clientAddress: clientAddress || ''
+      });
+
+      if (result.success) {
+        clearCart();
+        setClientName('');
+        setClientAddress('');
+        navigate('/quotes');
+      } else {
+        alert('Error al guardar cotización: ' + result.error);
       }
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -205,13 +237,22 @@ export default function PosScreen() {
               Transferencia
             </button>
           </div>
-          <button 
-            disabled={cart.length === 0 || isProcessing}
-            onClick={handleCheckout}
-            className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex justify-center items-center gap-2"
-          >
-            {isProcessing ? 'Procesando...' : 'Cobrar Orden'}
-          </button>
+          <div className="flex gap-2">
+            <button 
+              disabled={cart.length === 0 || isProcessing}
+              onClick={handleQuote}
+              className="w-1/3 py-3 bg-white text-primary border border-primary hover:bg-primary/5 rounded-xl font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            >
+              Cotizar
+            </button>
+            <button 
+              disabled={cart.length === 0 || isProcessing}
+              onClick={handleCheckout}
+              className="w-2/3 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            >
+              {isProcessing ? 'Procesando...' : 'Cobrar Orden'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
