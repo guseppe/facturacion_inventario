@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { DollarSign, TrendingUp, AlertTriangle, Activity, PackageX } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertTriangle, Activity, PackageX, Database } from 'lucide-react';
 
 export default function ReportsScreen() {
   const isAdmin = useAuthStore(state => state.isAdmin());
@@ -8,6 +8,8 @@ export default function ReportsScreen() {
   const [metrics, setMetrics] = useState({ todaySales: 0, todayTransactions: 0, monthSales: 0 });
   const [pl, setPl] = useState({ totalSales: 0, totalCogs: 0, grossProfit: 0 });
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [valuation, setValuation] = useState<number>(0);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().setDate(1)).toISOString().split('T')[0], // First day of current month
@@ -26,7 +28,13 @@ export default function ReportsScreen() {
       if (isAdmin) {
         const plRes = await window.api.getProfitAndLoss(dateRange);
         if (plRes.success) setPl(plRes.data);
+        
+        const valRes = await window.api.getInventoryValuation();
+        if (valRes.success) setValuation(valRes.data);
       }
+
+      const auditRes = await window.api.getInventoryAudit({});
+      if (auditRes.success) setAuditLogs(auditRes.data);
 
       const aRes = await window.api.getLowStockAlerts();
       if (aRes.success) setAlerts(aRes.data);
@@ -44,7 +52,7 @@ export default function ReportsScreen() {
       </h1>
 
       {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center">
           <div className="bg-green-100 p-4 rounded-xl text-green-600 mr-5">
             <DollarSign size={28} />
@@ -65,6 +73,19 @@ export default function ReportsScreen() {
             <h3 className="text-2xl font-bold text-gray-800">${metrics.monthSales.toFixed(2)}</h3>
           </div>
         </div>
+
+        {isAdmin && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center">
+            <div className="bg-purple-100 p-4 rounded-xl text-purple-600 mr-5">
+              <Database size={28} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Capital en Inventario</p>
+              <h3 className="text-2xl font-bold text-gray-800">${valuation.toFixed(2)}</h3>
+              <p className="text-xs text-gray-400 mt-1">Valorizado al costo</p>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center">
           <div className="bg-orange-100 p-4 rounded-xl text-orange-600 mr-5">
@@ -167,6 +188,50 @@ export default function ReportsScreen() {
           </div>
         </div>
       </div>
+
+      {/* Inventory Audit Logs */}
+      {isAdmin && (
+        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-800 flex items-center">
+              Auditoría de Inventario (Últimos Movimientos)
+            </h2>
+          </div>
+          <div className="overflow-x-auto max-h-[400px]">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 sticky top-0 shadow-sm">
+                <tr>
+                  <th className="px-6 py-3 font-medium text-gray-500">Fecha</th>
+                  <th className="px-6 py-3 font-medium text-gray-500">Producto</th>
+                  <th className="px-6 py-3 font-medium text-gray-500">Tipo</th>
+                  <th className="px-6 py-3 font-medium text-gray-500 text-right">Cant.</th>
+                  <th className="px-6 py-3 font-medium text-gray-500">Notas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {auditLogs.slice(0, 50).map(log => (
+                  <tr key={log.transaction.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(log.transaction.date).toLocaleString()}</td>
+                    <td className="px-6 py-4 font-medium text-gray-800">{log.product.name}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${log.transaction.type === 'SALE' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                        {log.transaction.type === 'SALE' ? 'SALIDA' : 'ENTRADA'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-gray-700">{log.transaction.quantity}</td>
+                    <td className="px-6 py-4 text-gray-500 text-xs italic">{log.transaction.notes || '-'}</td>
+                  </tr>
+                ))}
+                {auditLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">No hay movimientos registrados.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

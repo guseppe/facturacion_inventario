@@ -38,9 +38,8 @@ export async function getProfitAndLossService(dateRange?: { startDate: string, e
   let conditions = eq(invoices.status, 'PAID');
   
   if (dateRange && dateRange.startDate && dateRange.endDate) {
-    const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(dateRange.startDate + 'T00:00:00');
+    const end = new Date(dateRange.endDate + 'T23:59:59.999');
     
     conditions = and(
       conditions,
