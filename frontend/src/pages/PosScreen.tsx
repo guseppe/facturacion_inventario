@@ -113,25 +113,34 @@ export default function PosScreen() {
 
         <div className="flex-1 overflow-y-auto pr-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => (
-              <button 
-                key={product.id}
-                onClick={() => addToCart(product)}
-                disabled={product.stockQuantity <= 0}
-                className={`bg-white p-4 rounded-xl shadow-sm border ${product.stockQuantity > 0 ? 'border-gray-100 hover:border-primary hover:shadow-md' : 'border-red-200 opacity-50'} transition-all text-left flex flex-col justify-between h-32 active:scale-[0.98]`}
-              >
-                <div>
-                  <span className="text-xs font-semibold text-gray-400 mb-1 block">{product.sku}</span>
-                  <h3 className="font-medium text-gray-800 line-clamp-2">{product.name}</h3>
-                </div>
-                <div className="flex justify-between items-end mt-2">
-                  <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
-                  <span className={`text-xs px-2 py-1 rounded-md ${product.stockQuantity <= product.minStockAlert ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
-                    Stock: {product.stockQuantity}
-                  </span>
-                </div>
-              </button>
-            ))}
+            {filteredProducts.map((product) => {
+              const isOutOfStock = product.manageStock && product.stockQuantity <= 0;
+              return (
+                <button 
+                  key={product.id}
+                  onClick={() => addToCart(product)}
+                  disabled={isOutOfStock}
+                  className={`bg-white p-4 rounded-xl shadow-sm border ${!isOutOfStock ? 'border-gray-100 hover:border-primary hover:shadow-md' : 'border-red-200 opacity-50'} transition-all text-left flex flex-col justify-between h-32 active:scale-[0.98]`}
+                >
+                  <div>
+                    <span className="text-xs font-semibold text-gray-400 mb-1 block">{product.sku}</span>
+                    <h3 className="font-medium text-gray-800 line-clamp-2">{product.name}</h3>
+                  </div>
+                  <div className="flex justify-between items-end mt-2">
+                    <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
+                    {product.manageStock ? (
+                      <span className={`text-xs px-2 py-1 rounded-md ${product.stockQuantity <= product.minStockAlert ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                        Stock: {product.stockQuantity}
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 font-medium">
+                        {product.type === 'SERVICE' ? 'Servicio' : 'Ilimitado'}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -175,7 +184,7 @@ export default function PosScreen() {
                     <span className="text-sm w-4 text-center font-medium">{item.quantity}</span>
                     <button 
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={item.quantity >= item.stockQuantity}
+                      disabled={item.manageStock && item.quantity >= item.stockQuantity}
                       className="p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
                     >
                       <Plus size={14} />
