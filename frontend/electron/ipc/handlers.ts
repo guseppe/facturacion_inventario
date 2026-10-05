@@ -19,6 +19,16 @@ import {
   getQuotesService,
   updateQuoteStatusService
 } from '../services/quoteService';
+import { loginService } from '../services/authService';
+import { 
+  getDashboardMetricsService,
+  getProfitAndLossService,
+  getLowStockAlertsService,
+  getInventoryValuationService,
+  getInventoryAuditService
+} from '../services/reportService';
+
+import { dbPath } from '../db/index';
 
 export function registerIpcHandlers() {
   // --- Products ---
@@ -137,7 +147,6 @@ export function registerIpcHandlers() {
   // --- Auth ---
   ipcMain.handle('auth:login', async (_, credentials) => {
     try {
-      const { loginService } = require('../services/authService');
       const user = await loginService(credentials);
       return { success: true, data: user };
     } catch (error: any) {
@@ -152,7 +161,6 @@ export function registerIpcHandlers() {
   // --- Reports ---
   ipcMain.handle('reports:getDashboardMetrics', async () => {
     try {
-      const { getDashboardMetricsService } = require('../services/reportService');
       const data = await getDashboardMetricsService();
       return { success: true, data };
     } catch (error: any) {
@@ -162,7 +170,6 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('reports:getProfitAndLoss', async (_, dateRange) => {
     try {
-      const { getProfitAndLossService } = require('../services/reportService');
       const data = await getProfitAndLossService(dateRange);
       return { success: true, data };
     } catch (error: any) {
@@ -172,7 +179,6 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('reports:getLowStockAlerts', async () => {
     try {
-      const { getLowStockAlertsService } = require('../services/reportService');
       const data = await getLowStockAlertsService();
       return { success: true, data };
     } catch (error: any) {
@@ -182,7 +188,6 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('reports:getInventoryValuation', async () => {
     try {
-      const { getInventoryValuationService } = require('../services/reportService');
       const data = await getInventoryValuationService();
       return { success: true, data };
     } catch (error: any) {
@@ -192,7 +197,6 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('reports:getInventoryAudit', async (_, filters) => {
     try {
-      const { getInventoryAuditService } = require('../services/reportService');
       const data = await getInventoryAuditService(filters);
       return { success: true, data };
     } catch (error: any) {
@@ -254,7 +258,6 @@ export function registerIpcHandlers() {
       const { dialog } = require('electron');
       const fs = require('fs');
       const path = require('path');
-      const { dbPath } = require('../db/index');
 
       const { canceled, filePath } = await dialog.showSaveDialog({
         title: 'Guardar Copia de Seguridad',

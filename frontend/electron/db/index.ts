@@ -30,6 +30,17 @@ try {
     
   migrate(db, { migrationsFolder });
   console.log('Database migrations applied successfully');
+
+  // Seed default admin if no users exist
+  const existingUsers = sqlite.prepare('SELECT id FROM users LIMIT 1').all();
+  if (existingUsers.length === 0) {
+    const crypto = require('crypto');
+    const adminId = crypto.randomUUID();
+    sqlite.prepare(
+      "INSERT INTO users (id, username, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)"
+    ).run(adminId, 'admin', '1995', 'ADMIN', 1);
+    console.log('Default admin user created');
+  }
 } catch (e) {
-  console.error('Error applying migrations:', e);
+  console.error('Error applying migrations or seeding:', e);
 }

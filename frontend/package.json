@@ -1,8 +1,8 @@
 {
-  "name": "frontend",
+  "name": "PapeleriaPOS",
   "version": "1.0.0",
   "description": "",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main.cjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
@@ -33,16 +33,16 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-react": "^4.7.0",
     "drizzle-kit": "^0.31.11",
     "electron": "^44.5.1",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^24.13.3",
     "eslint": "^10.11.0",
     "gh-pages": "^6.3.0",
     "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1",
+    "vite": "^6.4.3",
     "vite-plugin-electron": "^1.1.2"
   },
   "build": {
@@ -60,11 +60,15 @@
       {
         "from": "electron/db/migrations",
         "to": "migrations",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "public/favicon.ico"
     },
     "nsis": {
@@ -74,7 +78,9 @@
       "createStartMenuShortcut": true
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "public/favicon.icns"
     }
   }

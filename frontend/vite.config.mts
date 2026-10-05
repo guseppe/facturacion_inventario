@@ -14,13 +14,21 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: [/node_modules/, 'better-sqlite3', 'drizzle-orm', 'drizzle-orm/better-sqlite3', 'electron']
+              external: [/node_modules/, 'better-sqlite3', 'drizzle-orm', 'drizzle-orm/better-sqlite3', 'electron'],
+              output: { entryFileNames: '[name].cjs' }
             }
           }
         }
       },
       preload: {
         input: 'electron/preload.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              output: { entryFileNames: '[name].cjs' }
+            }
+          }
+        }
       },
     }),
   ],

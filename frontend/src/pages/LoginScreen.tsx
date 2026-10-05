@@ -7,8 +7,8 @@ export default function LoginScreen() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('1234');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {

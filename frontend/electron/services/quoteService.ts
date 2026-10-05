@@ -12,7 +12,7 @@ export async function createQuoteService(data: { items: any[], totalAmount: numb
     const newUser = await db.insert(users).values({
       id: userId,
       username: 'admin',
-      passwordHash: '1234',
+      passwordHash: '1995',
       role: 'ADMIN',
       isActive: true
     }).returning();
